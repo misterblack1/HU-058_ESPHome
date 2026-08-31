@@ -46,7 +46,7 @@ The LED display on this clock is multiplexed at around 400hz, so there may be so
 
 Do not install the socket for the MCU, you will be connecting the new MCU to those pins. Do not install the Dallas or ESP device. Leave off the NTC and light sensor. Don't bother with the buzzer and driver transistor unless you want to use those. They are not used in my firmware. 
 
-The buttons are connected to the ESP32-WROOM in my firmware, and are exposed as binary sensor entities in Home Assistant. Get an ESP32 board that has the GPIO lines listed below of you will need to change the firmware to match the hardware you have. The WROOM board fits perfectly inside the existing clock case.
+The buttons are connected to the ESP32-WROOM-32 in the ESPHome firmware, and are exposed as entities in Home Assistant. If your ESP32 board doesn't expose the GPIO lines listed below, you will need to change the firmware to match the hardware you have. The WROOM-32 board fits perfectly inside the existing clock case once your remote the pin headers.
 
 | ESP32 | Socket pin | Net |
 | --- | --- | --- |
@@ -74,11 +74,7 @@ Step-by-step build notes are in `docs/wiring.md`.
 | `docs/home-assistant.md` | Every entity and action the firmware exposes |
 | `reference/` | The AiP33628 datasheet |
 
-The display map came out of logic analyzer captures of the stock firmware.
-
-Every position was then driven from an ESP32 and checked against the panel.
-
-Check your own board with the walk pattern in the bench firmware before blaming the map.
+The display map came out of logic analyzer captures of the stock firmware. 
 
 ## Firmware
 
@@ -141,6 +137,10 @@ Firmware updates go over the air, part of the ESPHome suite.
 
 Out of scope by choice: the buzzer, the light sensor and the NTC thermistor. The
 buttons are exposed to Home Assistant but carry no built-in behavior.
+
+## AI Disclaimer
+
+This project was coded with assistance from LLMs. Concept, design, testing, QA and code review was all done by me.
 
 ## License
 
