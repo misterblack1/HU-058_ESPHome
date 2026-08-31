@@ -10,7 +10,7 @@ If you only want the reverse engineering, read `docs/`. You can drive this panel
 
 ## The two variants
 
-Same board, same display, same 8051. The only difference is the time source.
+Same board, same display, same 8051. The only difference is the time source. Prices as of August 30, 2026: 
 
 | Board | Price | Sold as | Timekeeping |
 | --- | --- | --- | --- |
