@@ -1,0 +1,429 @@
+substitutions:
+  name: wifi-clock
+  friendly_name: WiFi Clock
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  # Template numbers and selects restore their value by publishing it, which
+  # does not fire their set_action, so a restored effect would show in the UI
+  # and do nothing. Push the lot into the component once everything is up.
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          id(panel)->set_effect_speed(id(effect_speed).state);
+          id(panel)->set_effect_angle(id(effect_angle).state);
+          id(panel)->set_effect_hue_span(id(effect_hue_span).state);
+          id(panel)->set_flash_fade(id(fx_flash_fade).state);
+          std::string sp = id(effect_spread).current_option();
+          id(panel)->set_effect_spread(sp == "Per Digit" ? 1 : sp == "Per LED" ? 2 : 0);
+          std::string ef = id(effect_mode).current_option();
+          id(panel)->set_effect(ef == "Color Cycle" ? 1 : ef == "Flash" ? 2 : 0);
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+external_components:
+  - source:
+      type: local
+      path: components
+
+logger:
+  level: INFO
+
+api:
+  encryption:
+    key: !secret api_key
+  # Called from Home Assistant automations as esphome.wifi_clock_show_seconds
+  # and esphome.wifi_clock_show_number. Both are temporary, and the panel goes
+  # back to the time on its own when the duration runs out, so a failed
+  # automation cannot leave the clock showing something stale.
+  actions:
+    - action: show_seconds
+      variables:
+        duration: int
+      then:
+        - lambda: id(panel)->show_seconds(duration);
+    # Right aligned digits with an optional unit in the rightmost position, so
+    # 78F and -5C both read correctly. The letter is what identifies the
+    # reading, since the degree mark is a single LED. Pass an empty unit
+    # to give the number all four positions. There is no decimal point on the
+    # panel, so round before sending.
+    - action: show_number
+      variables:
+        value: int
+        unit: string
+        duration: int
+      then:
+        - lambda: id(panel)->show_number(value, unit, duration);
+    # Per digit color. Digit 0 is the leftmost and 3 the rightmost, and -1
+    # sets all four at once. Components are 0 to 255 and are not rescaled
+    # against each other, so a digit can be dimmer than its neighbors as well
+    # as a different hue. Each digit carries its own annunciator, so the colon
+    # takes the color of the hour ones digit and the AM mark the hour tens.
+    # This is runtime state and is not remembered across a reboot.
+    - action: set_digit_color
+      variables:
+        digit: int
+        red: int
+        green: int
+        blue: int
+      then:
+        - lambda: |-
+            id(panel)->set_digit_color(digit, red / 255.0f, green / 255.0f, blue / 255.0f);
+    # Hand the whole panel back to the Display light, gradients included.
+    - action: clear_digit_colors
+      then:
+        - lambda: id(panel)->clear_digit_colors();
+    # One LED, by the id on the board layout map. See docs/led-layout.md.
+    - action: set_position_color
+      variables:
+        position: int
+        red: int
+        green: int
+        blue: int
+      then:
+        - lambda: |-
+            id(panel)->set_position_color(position, red / 255.0f, green / 255.0f,
+                                          blue / 255.0f);
+    # A linear ramp between two colors across the whole panel. Angle is in
+    # degrees, 0 left to right and 90 top to bottom, so -45 runs from the
+    # bottom left corner to the top right.
+    # Everything about the running effect in one call, for automations that
+    # want to set it up atomically rather than nudging five entities.
+    # mode 0 off, 1 color cycle, 2 flash. spread 0 whole panel, 1 per digit,
+    # 2 per LED. speed is seconds for one full cycle, which for flash is one
+    # complete on and off. angle is the direction the spread runs. hue_span is
+    # how many degrees of the color wheel the panel covers end to end.
+    # flash_fade is seconds per flash transition, 0 to snap.
+    - action: set_effect
+      variables:
+        mode: int
+        spread: int
+        speed: float
+        angle: float
+        hue_span: float
+        flash_fade: float
+      then:
+        # Drives the entities rather than the component, so the Home Assistant
+        # UI ends up showing what the panel is actually doing. Calling the
+        # component directly would work and leave every slider stale.
+        #
+        # Values are clamped here because a number call outside its range is
+        # dropped rather than clamped, which would silently ignore the whole
+        # setting.
+        - lambda: |-
+            id(effect_speed).make_call().set_value(clamp(speed, 0.2f, 600.0f)).perform();
+            id(effect_angle).make_call().set_value(clamp(angle, -180.0f, 180.0f)).perform();
+            id(effect_hue_span).make_call().set_value(clamp(hue_span, 0.0f, 360.0f)).perform();
+            id(fx_flash_fade).make_call().set_value(clamp(flash_fade, 0.0f, 30.0f)).perform();
+            id(effect_spread).make_call().set_option(
+                spread == 1 ? "Per Digit" : spread == 2 ? "Per LED" : "Whole Panel").perform();
+            id(effect_mode).make_call().set_option(
+                mode == 1 ? "Color Cycle" : mode == 2 ? "Flash" : "None").perform();
+    - action: set_gradient
+      variables:
+        red1: int
+        green1: int
+        blue1: int
+        red2: int
+        green2: int
+        blue2: int
+        angle: float
+      then:
+        - lambda: |-
+            id(panel)->set_gradient(red1 / 255.0f, green1 / 255.0f, blue1 / 255.0f,
+                                    red2 / 255.0f, green2 / 255.0f, blue2 / 255.0f, angle);
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # There is no RTC on this board, so a cold boot with no network means no
+  # time at all. The panel shows four dashes until it has one.
+  ap:
+    ssid: ${friendly_name} Setup
+    password: !secret ap_password
+  # The panel drops the upper colon dot while the network is down, so the
+  # clock tells you its time may be drifting without anyone opening an app.
+  on_connect:
+    - lambda: id(panel)->set_online(true);
+  on_disconnect:
+    - lambda: id(panel)->set_online(false);
+
+captive_portal:
+
+time:
+  # No timezone on this one, deliberately. Home Assistant pushes its own
+  # timezone to the device on every time sync, DST rules included, but only
+  # if this platform has no timezone of its own. Setting one here compiles
+  # that path out and pins the clock to whatever is written instead.
+  - platform: homeassistant
+    id: ha_time
+  # SNTP is the fallback for a boot with no Home Assistant. It has nowhere to
+  # learn a timezone from, so this one is spelled out. It is also what the
+  # display shows for the first few seconds of every boot, until Home
+  # Assistant answers. Change it if the clock moves.
+  - platform: sntp
+    id: sntp_time
+    timezone: America/Los_Angeles
+
+aip33628:
+  id: panel
+  clk_pin: GPIO22    # MCU socket pin 14, driver 1
+  data_pin: GPIO21   # MCU socket pin 5,  driver 1
+  clk2_pin: GPIO19   # MCU socket pin 1,  driver 2
+  data2_pin: GPIO18  # MCU socket pin 2,  driver 2
+  time_id: ha_time
+  # Power on defaults. The switches below own both after that, and they
+  # restore their last state, so these only matter for a first ever boot.
+  twelve_hour: true
+  blink_colon: true
+  # Ceiling on IS[3:0], 0 to 15. Fixed, never varied by content. The stock
+  # firmware ran 0xF and drew 404mA doing it. Drop this if the drivers
+  # run hotter than you want. See docs/display-map.md.
+  max_current: 15
+
+light:
+  - platform: aip33628
+    id: display
+    aip33628_id: panel
+    name: Display
+    restore_mode: RESTORE_DEFAULT_ON
+    # Gamma is applied inside the component, because it also has to allow for
+    # the 2.5mA floor the drivers cannot go below. Leaving it on here as well
+    # would square it.
+    gamma_correct: 1.0
+
+# The two front panel buttons. Nothing on the board pulls these nets up. The
+# stock 8051 held them high with its own quasi-bidirectional port pullup, and
+# that chip is out of the socket, so the ESP32 internal pullup is the only one
+# and the lines never see 5V. Switch closed shorts to ground, hence inverted.
+#
+# No behavior is attached here on purpose. Home Assistant is the control
+# surface, so these are just inputs it can bind to. Press and hold patterns
+# belong in an automation, not in this file.
+binary_sensor:
+  - platform: gpio
+    id: button_1
+    name: Button 1
+    pin:
+      number: GPIO32  # MCU socket pin 9, net S1, top button on the case
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 20ms
+      - delayed_off: 20ms
+  - platform: gpio
+    id: button_2
+    name: Button 2
+    pin:
+      number: GPIO33  # MCU socket pin 10, net S2, bottom button on the case
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 20ms
+      - delayed_off: 20ms
+
+switch:
+  # 24 hour mode has a hardware caveat on this board. The hour tens digit is
+  # missing its E segment, which the factory never populated, so 20:00 through
+  # 23:59 render a broken 2. Every other hour is fine, and the leading zero
+  # stays suppressed so a 0 never lands there. See docs/hardware.md.
+  - platform: template
+    id: twelve_hour_mode
+    name: 12 Hour Time
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - lambda: id(panel)->set_twelve_hour(true);
+    turn_off_action:
+      - lambda: id(panel)->set_twelve_hour(false);
+
+  # Off means a steady colon, not a dark one.
+  - platform: template
+    id: colon_blink
+    name: Blink Colon
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - lambda: id(panel)->set_blink_colon(true);
+    turn_off_action:
+      - lambda: id(panel)->set_blink_colon(false);
+
+button:
+  # A shortcut for the common case, and something to press by hand.
+  # Anything more elaborate belongs in a Home Assistant automation calling
+  # the api actions above.
+  - platform: template
+    name: Show Seconds
+    on_press:
+      - lambda: id(panel)->show_seconds(5000);
+
+  # A UI handle for set_digit_color, and the quickest way to see the four
+  # digits driven independently.
+  - platform: template
+    name: Digit Color Demo
+    on_press:
+      - lambda: |-
+          id(panel)->set_digit_color(0, 1.00f, 0.00f, 0.00f);
+          id(panel)->set_digit_color(1, 1.00f, 0.45f, 0.00f);
+          id(panel)->set_digit_color(2, 0.00f, 1.00f, 0.25f);
+          id(panel)->set_digit_color(3, 0.10f, 0.30f, 1.00f);
+
+  - platform: template
+    name: Clear Digit Colors
+    on_press:
+      - lambda: id(panel)->clear_digit_colors();
+
+  # Green in the bottom left corner running to yellow in the top right, which
+  # is the sort of thing the stock firmware did. -45 degrees is that diagonal.
+  - platform: template
+    name: Diagonal Gradient
+    on_press:
+      - lambda: |-
+          id(panel)->set_gradient(0.00f, 1.00f, 0.10f,
+                                  1.00f, 0.85f, 0.00f, -45.0f);
+
+# A UI handle for the show_number action, which otherwise lives only under
+# Developer Tools > Actions. Setting either entity redraws immediately and the
+# panel falls back to the time ten seconds later on its own.
+select:
+  # Effects run on the device, not in Home Assistant, so a fade stays smooth
+  # and keeps going if the network drops. Every entity here is a normal one,
+  # so an automation can drive them, or call the set_effect action to set the
+  # lot at once.
+  - platform: template
+    name: Effect
+    id: effect_mode
+    optimistic: true
+    restore_value: true
+    initial_option: "None"
+    options: ["None", "Color Cycle", "Flash"]
+    set_action:
+      - lambda: |-
+          std::string v = x;
+          id(panel)->set_effect(v == "Color Cycle" ? 1 : v == "Flash" ? 2 : 0);
+
+  # Whole Panel moves everything together. Per Digit gives each digit its own
+  # phase, so the color walks across the four of them. Per LED gives every
+  # position its own, which is the smooth sweep.
+  - platform: template
+    name: Effect Spread
+    id: effect_spread
+    optimistic: true
+    restore_value: true
+    initial_option: "Whole Panel"
+    options: ["Whole Panel", "Per Digit", "Per LED"]
+    set_action:
+      - lambda: |-
+          std::string v = x;
+          id(panel)->set_effect_spread(v == "Per Digit" ? 1 : v == "Per LED" ? 2 : 0);
+
+  - platform: template
+    name: Test Unit
+    id: test_unit
+    optimistic: true
+    restore_value: true
+    initial_option: "F"
+    options: ["None", "F", "C"]
+    set_action:
+      - lambda: |-
+          std::string u = x;
+          if (u == "None") u.clear();
+          id(panel)->show_number((int) id(test_number).state, u, 10000);
+
+number:
+  # Seconds for one full cycle. For Flash this is one complete on and off.
+  - platform: template
+    name: Effect Speed
+    id: effect_speed
+    optimistic: true
+    restore_value: true
+    initial_value: 10
+    min_value: 0.2
+    max_value: 600
+    step: 0.2
+    unit_of_measurement: s
+    mode: box
+    set_action:
+      - lambda: id(panel)->set_effect_speed(x);
+
+  # Which way the spread runs. 0 is left to right, 90 top to bottom, 180
+  # right to left. -45 is the bottom left to top right diagonal and 135 is
+  # the other one, top right to bottom left.
+  - platform: template
+    name: Effect Angle
+    id: effect_angle
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: -180
+    max_value: 180
+    step: 15
+    unit_of_measurement: deg
+    mode: box
+    set_action:
+      - lambda: id(panel)->set_effect_angle(x);
+
+  # How many degrees of the color wheel the panel covers end to end. A full
+  # 360 packs the whole spectrum across four digits and reads as noise, so
+  # the useful settings are narrow. 60 is roughly red through orange, 90
+  # reaches yellow. 0 puts the whole panel on one color that still cycles.
+  # Only Color Cycle uses this, and only when Spread is not Whole Panel.
+  - platform: template
+    name: Effect Hue Span
+    id: effect_hue_span
+    optimistic: true
+    restore_value: true
+    initial_value: 90
+    min_value: 0
+    max_value: 360
+    step: 5
+    unit_of_measurement: deg
+    mode: box
+    set_action:
+      - lambda: id(panel)->set_effect_hue_span(x);
+
+  # Seconds each flash transition takes, independent of the flash rate. 0
+  # snaps on and off. 0.1 gives a quick ramp. Anything past half the Effect
+  # Speed is capped there, which is the point where it becomes a triangle.
+  - platform: template
+    name: Flash Fade
+    id: fx_flash_fade
+    optimistic: true
+    restore_value: true
+    initial_value: 0
+    min_value: 0
+    max_value: 30
+    step: 0.05
+    unit_of_measurement: s
+    mode: box
+    set_action:
+      - lambda: id(panel)->set_flash_fade(x);
+
+  - platform: template
+    name: Test Number
+    id: test_number
+    optimistic: true
+    restore_value: true
+    initial_value: 72
+    min_value: -999
+    max_value: 9999
+    step: 1
+    mode: box
+    set_action:
+      - lambda: |-
+          std::string u = id(test_unit).current_option();
+          if (u == "None") u.clear();
+          id(panel)->show_number((int) x, u, 10000);

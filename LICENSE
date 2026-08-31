@@ -1,0 +1,20 @@
+Public domain.
+
+All original work in this repository is dedicated to the public domain under
+CC0 1.0 Universal (https://creativecommons.org/publicdomain/zero/1.0/). Where
+a court holds that a public domain dedication has no effect, the same work is
+also licensed, at your option, under the terms of the Unlicense
+(https://unlicense.org/).
+
+Exception: code derived from the ESPHome project is not covered by the above.
+It remains under ESPHome's own license, GPLv3, and keeps whatever notices it
+arrived with.
+
+The AiP33628 datasheet under reference/ is not this project's to license. It
+belongs to Wuxi I-CORE and is kept here as hardware documentation, because the
+part is otherwise undocumented outside China.
+
+THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
