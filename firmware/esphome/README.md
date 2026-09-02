@@ -11,7 +11,7 @@ Mapping, scan timing and the current budget are in
 
 I recommend you build and flash the firmware onto the ESP32 before you wire anything to the clock board.
 
-An ESP32 on a USB cable with nothing attached to it will still boot, join
+An ESP32 connected via a USB cable with nothing attached to it will still boot, join
 WiFi and turn up in Home Assistant. Then when you connect the six wires the panel just
 lights up.
 
@@ -28,9 +28,19 @@ component.
 
 ESPHome 2026.8.0 or newer, on Python 3.11 or newer.
 
+Install it into a virtual environment. Recent Linux distributions and Homebrew
+refuse a plain `pip install` into the system Python, and a user install puts
+the `esphome` command somewhere that is often not on PATH.
+
 ```
-py -m pip install --upgrade esphome
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade esphome
 ```
+
+On Windows, create it with `py -m venv venv` and activate with
+`venv\Scripts\activate`. Every `esphome` command below assumes the environment
+is active, and you activate it again in each new terminal.
 
 ## Which ESP32
 
@@ -72,6 +82,8 @@ Nope, this requires an ESP32. The scan leans on `gptimer` and on that single-sto
 cp secrets.yaml.example secrets.yaml
 ```
 
+On Windows that is `copy` instead of `cp`.
+
 Fill in the WiFi credentials and generate the API key the way the comment in
 that file describes.
 
@@ -88,8 +100,7 @@ Do not add one there.
 esphome run clock.yaml
 ```
 
-USB flashing on a WROOM-32 devkit may need BOOT held down while power is
-applied. Auto-reset into the bootloader does not work on every board. (It did work for me though.)
+USB flashing on a WROOM-32 devkit may need to hold down BOOT while trying to program. Auto-reset into the bootloader does not work on every board.
 
 Once it is on the network, updates go over the air, and the API carries the log stream:
 
@@ -234,3 +245,4 @@ WiFi task, which preempts it and stretches whichever COM slot is lit at the
 time. A full duty slot rides that out. A 40us sub-frame does not, and the same
 jitter reads as uneven digits and a visible pulse on any color that is not
 saturated.
+
