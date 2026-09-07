@@ -11,7 +11,7 @@
 #include <string.h>
 
 // ESP32 GPIO -> MCU socket pin on the clock board. Ground through socket pin 8.
-static const int PIN_CLK = 22;     // socket pin 14, driver 1 clock
+static const int PIN_CLK = 22;     // socket pin 14 (HU-058D) or 16 (HU-058/SE), driver 1 clock
 static const int PIN_DATA = 21;    // socket pin 5,  driver 1 data
 static const int PIN_CLK_1 = 19;   // socket pin 1,  driver 2 clock
 static const int PIN_DATA_1 = 18;  // socket pin 2,  driver 2 data
