@@ -37,10 +37,9 @@ logger:
 api:
   encryption:
     key: !secret api_key
-  # Called from Home Assistant automations as esphome.wifi_clock_show_seconds
-  # and esphome.wifi_clock_show_number. Both are temporary, and the panel goes
-  # back to the time on its own when the duration runs out, so a failed
-  # automation cannot leave the clock showing something stale.
+  # Called from Home Assistant automations as esphome.wifi_clock_<name>.
+  # Temporary displays go back to the time on their own when the duration
+  # runs out, so a failed automation cannot leave the clock showing stale data.
   actions:
     - action: show_seconds
       variables:
@@ -48,10 +47,9 @@ api:
       then:
         - lambda: id(panel)->show_seconds(duration);
     # Right aligned digits with an optional unit in the rightmost position, so
-    # 78F and -5C both read correctly. The letter is what identifies the
-    # reading, since the degree mark is a single LED. Pass an empty unit
-    # to give the number all four positions. There is no decimal point on the
-    # panel, so round before sending.
+    # 78F and -5C both read correctly. A unit of C or F also lights the degree
+    # mark. Pass an empty unit to give the number all four positions. There is
+    # no decimal point on the panel, so round before sending.
     - action: show_number
       variables:
         value: int
@@ -59,6 +57,14 @@ api:
         duration: int
       then:
         - lambda: id(panel)->show_number(value, unit, duration);
+    # Every populated LED, white, for a few seconds, then back to the time.
+    # It ignores color, effects, brightness and the light being off. Duration
+    # is milliseconds, and 3000 is the button below.
+    - action: lamp_test
+      variables:
+        duration: int
+      then:
+        - lambda: id(panel)->lamp_test(duration);
     # Per digit color. Digit 0 is the leftmost and 3 the rightmost, and -1
     # sets all four at once. Components are 0 to 255 and are not rescaled
     # against each other, so a digit can be dimmer than its neighbors as well
@@ -172,11 +178,11 @@ time:
   # Assistant answers. Change it if the clock moves.
   - platform: sntp
     id: sntp_time
-    timezone: America/Los_Angeles
+    timezone: !secret timezone
 
 aip33628:
   id: panel
-  clk_pin: GPIO22    # MCU socket pin 14, driver 1
+  clk_pin: GPIO22    # MCU socket pin 14 (HU-058D) or 16 (HU-058/SE), driver 1
   data_pin: GPIO21   # MCU socket pin 5,  driver 1
   clk2_pin: GPIO19   # MCU socket pin 1,  driver 2
   data2_pin: GPIO18  # MCU socket pin 2,  driver 2
@@ -236,10 +242,6 @@ binary_sensor:
       - delayed_off: 20ms
 
 switch:
-  # 24 hour mode has a hardware caveat on this board. The hour tens digit is
-  # missing its E segment, which the factory never populated, so 20:00 through
-  # 23:59 render a broken 2. Every other hour is fine, and the leading zero
-  # stays suppressed so a 0 never lands there. See docs/hardware.md.
   - platform: template
     id: twelve_hour_mode
     name: 12 Hour Time
@@ -262,6 +264,13 @@ switch:
       - lambda: id(panel)->set_blink_colon(false);
 
 button:
+  # Three seconds of every populated LED lit white at half brightness, then
+  # back to the time with the settings it had before.
+  - platform: template
+    name: Lamp Test
+    on_press:
+      - lambda: id(panel)->lamp_test(3000);
+
   # A shortcut for the common case, and something to press by hand.
   # Anything more elaborate belongs in a Home Assistant automation calling
   # the api actions above.

@@ -84,10 +84,10 @@ cp secrets.yaml.example secrets.yaml
 
 On Windows that is `copy` instead of `cp`.
 
-Fill in the WiFi credentials and generate the API key the way the comment in
-that file describes.
+Fill in the WiFi credentials, timezone and API key the way the comments in
+that file describe.
 
-The timezone in `clock.yaml` is a fallback for a boot with no Home Assistant.
+The timezone in `secrets.yaml` is a fallback for a boot with no Home Assistant.
 Change it to yours.
 
 Home Assistant pushes its own timezone on every time sync and that path wins,
@@ -140,7 +140,7 @@ Full build notes are in `../../docs/wiring.md`.
 
 | ESP32 | Pin | Net |
 | --- | --- | --- |
-| GPIO22 | 14 | CLK, driver 1 |
+| GPIO22 | 14 on HU-058D; 16 on HU-058 / HU-058SE | CLK, driver 1 |
 | GPIO21 | 5 | DATA, driver 1 |
 | GPIO19 | 1 | CLK_1, driver 2 |
 | GPIO18 | 2 | DATA_1, driver 2 |
@@ -184,6 +184,9 @@ The light platform takes an `aip33628_id` and is otherwise a normal RGB light.
   boot with no network means no time at all until the network comes back.
 - One RGB "light" entity for the whole display, plus per digit color, per LED
   color, gradients, a color cycle and a flash effect.
+- Temporary number displays light the degree mark when their unit is C or F.
+- A lamp test lights every populated LED white for three seconds, then restores
+  the previous display settings.
 
 ## Color resolution
 
@@ -245,4 +248,3 @@ WiFi task, which preempts it and stretches whichever COM slot is lit at the
 time. A full duty slot rides that out. A 40us sub-frame does not, and the same
 jitter reads as uneven digits and a visible pulse on any color that is not
 saturated.
-
