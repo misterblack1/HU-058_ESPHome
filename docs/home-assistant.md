@@ -15,6 +15,7 @@ In YAML they are called with `action:` and `data:`.
 | --- | --- |
 | `show_seconds` | `duration` int, ms |
 | `show_number` | `value` int, `unit` string, `duration` int ms |
+| `lamp_test` | `duration` int, ms |
 | `set_digit_color` | `digit` int, `red` `green` `blue` int 0-255 |
 | `set_position_color` | `position` int 1-33, `red` `green` `blue` int 0-255 |
 | `set_gradient` | `red1` `green1` `blue1`, `red2` `green2` `blue2` int 0-255, `angle` float |
@@ -40,11 +41,21 @@ There is no decimal point on the panel, so round before sending.
 Only these letters render unambiguously on seven segments, and anything else
 is ignored: `A b C c d E F H h L n o P r t U u y`.
 
+A unit of `C`, `c` or `F` also lights the degree mark in the gap ahead of the
+last digit. No other unit gets it.
+
 Out of range values clamp rather than wrap, because a wrapped temperature is
 a wrong reading and a clamped one is visibly pinned.
 
-On this board, a number wide enough to reach the leftmost position renders 0,
-2, 6 and 8 broken there, since that digit is missing its lower left segment.
+### lamp_test
+
+Every populated LED, white, at half brightness, then back to the time with the
+colors, effect and on or off state it had before. It ignores those settings so
+anything still dark is a panel or wiring fault rather than a display setting.
+
+`duration` is milliseconds, clamped like the other temporary displays. The
+`Lamp Test` button calls it with 3000. The all-white pattern draws substantial
+current, so use it as a momentary check rather than putting it on a loop.
 
 ### set_digit_color
 
@@ -69,9 +80,6 @@ digit.
 
 Within a digit the walk is A, F, G, E, D, C, B, so the first id of each digit
 is its top segment.
-
-Ids 4 and 26 have no LED fitted on this board. Setting them is harmless and
-does nothing visible.
 
 ### set_gradient
 
@@ -115,6 +123,7 @@ gradients included.
 | `number.wifi_clock_flash_fade` | Number | 0 to 30 s, step 0.05 |
 | `binary_sensor.wifi_clock_button_1` | Binary sensor | Top button on the case |
 | `binary_sensor.wifi_clock_button_2` | Binary sensor | Bottom button |
+| `button.wifi_clock_lamp_test` | Button | Three seconds of every LED, white |
 | `button.wifi_clock_show_seconds` | Button | Five seconds of `:SS` |
 | `button.wifi_clock_diagonal_gradient` | Button | Green to yellow, -45 |
 | `button.wifi_clock_digit_color_demo` | Button | Four digits, four colors |
@@ -305,9 +314,9 @@ Top button cycles through the effects:
 
 ## Things worth knowing
 
-Temporary displays expire on their own. `show_seconds` and `show_number` both
-carry a deadline capped at ten minutes, so a failed automation cannot park the
-panel on a stale number.
+Temporary displays expire on their own. `show_seconds`, `show_number` and
+`lamp_test` carry a deadline capped at ten minutes, so a failed automation
+cannot park the panel on temporary content.
 
 There is no RTC. A cold boot with no network shows four dashes until the time
 arrives.
@@ -315,4 +324,3 @@ arrives.
 The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The timezone comes from Home Assitant. 
 
 The upper colon dot drops while the network is down. It is not known how much time will drift while NTP servers can't be reached.
-

@@ -44,12 +44,12 @@ Every signal the panel needs lands on the DIP-16 footprint.
 | 8 | GND | Common ground |
 | 9 | S1 | Top button, switch to ground |
 | 10 | S2 | Bottom button, switch to ground |
-| 14 | CLK | Driver 1 clock |
+| 14 or 16 | CLK | Driver 1 clock, depending on board revision |
 
 Pin 1 is the end marked on the silkscreen.
 
-On the HU-058, driver 1 clock is on pin 16 instead of pin 14, because that
-board spends pin 14 on its DS1302.
+On the HU-058 and HU-058SE, driver 1 clock is on pin 16 instead of pin 14,
+because those boards spend pin 14 on the RTC.
 
 The rest of the pinout, including the buzzer, the thermistor and the light
 sensor, is in `hardware.md`.
@@ -58,7 +58,7 @@ sensor, is in `hardware.md`.
 
 | ESP32 | Pin | Net |
 | --- | --- | --- |
-| GPIO22 | 14 | CLK, driver 1 |
+| GPIO22 | 14 on HU-058D; 16 on HU-058 / HU-058SE | CLK, driver 1 |
 | GPIO21 | 5 | DATA, driver 1 |
 | GPIO19 | 1 | CLK_1, driver 2 |
 | GPIO18 | 2 | DATA_1, driver 2 |

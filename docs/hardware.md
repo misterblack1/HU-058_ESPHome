@@ -43,7 +43,7 @@ I didn't bother to capture these signals, since they were irrelevant.
 | 11 | P3.2/ADC10/INT0 | R_B | Buzzer, R5 10K to Q1 S8550 base |
 | 12 | P3.3/ADC11/INT1 | - | No connection |
 | 13 | P3.4/ADC12/T0 | - | No connection |
-| 14 | P3.5/ADC13/T2 | CLK | Display bus 1 clock |
+| 14 | P3.5/ADC13/T2 | CLK | Display bus 1 clock on the HU-058D; pin 16 on the HU-058 and HU-058SE |
 | 15 | P3.6/ADC14/INT2 | RXD_2 | From ESP GPIO2 through R7 330R |
 | 16 | P3.7/INT3 | TXD_2 | To ESP RXD through R6 330R |
 
@@ -121,12 +121,22 @@ Only one indicator exists for 12 hour mode, am AM indicator.
 
 Physical coordinates for every position are in `led-layout.md`.
 
-## HU-058D versus HU-058
+## Board variants
 
-The HU-058 is the same clock without WiFi. Same STC8G1K17-38I in a DIP-16 socket, same
-buttons, buzzer, LDR, NTC and display.
+The HU-058 and HU-058SE are the same clock without WiFi. All three variants
+use the same STC8G1K17-38I in a DIP-16 socket, buttons, buzzer, LDR, NTC and
+display.
 
-What the D revision changes:
+| Board | Timekeeping | Display bus 1 CLK |
+| --- | --- | --- |
+| HU-058 | Dallas RTC, 32.768kHz crystal and coin cell | P3.7, socket pin 16 |
+| HU-058D | ESP-01S over a serial link, no RTC | P3.5, socket pin 14 |
+| HU-058SE | Dallas RTC, 32.768kHz crystal and coin cell | P3.7, socket pin 16 |
+
+Only that clock line moves. DATA stays on socket pin 5 and the second bus
+stays on socket pins 1 and 2.
+
+What the D revision changes from the HU-058 and HU-058SE:
 
 | HU-058 | HU-058D | Effect |
 | --- | --- | --- |
