@@ -8,14 +8,14 @@ If you only want the reverse engineering, read `docs/`. You can drive this panel
 
 ![Every LED position on the HU-058D panel](docs/images/led-positions.png)
 
-## The two variants
+## The board variants
 
-Same board, same display, same 8051. The only difference is the time source. Prices as of August 30, 2026: 
+Same display and same 8051. The RTC boards also move one display clock wire.
 
-| Board | Price | Sold as | Timekeeping |
-| --- | --- | --- | --- |
-| HU-058D | $14.32 | [ESP8266 IoT Colorful WiFi Clock Kit](https://www.aliexpress.us/item/3256807371597845.html) | ESP-01S, NTP over WiFi |
-| HU-058 | $8.60 | [DIY KIT Electronic Clock LED Microcontroller Soldering Exercise](https://www.aliexpress.us/item/3256806414008654.html) | DS1302 RTC and a coin cell |
+| Board | Sold as | Timekeeping |
+| --- | --- | --- |
+| HU-058D | [ESP8266 IoT Colorful WiFi Clock Kit](https://www.aliexpress.us/item/3256807371597845.html) | ESP-01S, NTP over WiFi |
+| HU-058 / HU-058SE | [DIY KIT Electronic Clock LED Microcontroller Soldering Exercise](https://www.aliexpress.us/item/3256806414008654.html) | Dallas RTC and a coin cell |
 
 ![The WiFi kit listing](docs/images/listing-esp8266.png)
 
@@ -50,7 +50,7 @@ The buttons are connected to the ESP32-WROOM-32 in the ESPHome firmware, and are
 
 | ESP32 | Socket pin | Net |
 | --- | --- | --- |
-| GPIO22 | 14 | CLK, driver 1 |
+| GPIO22 | 14 on HU-058D; 16 on HU-058 / HU-058SE | CLK, driver 1 |
 | GPIO21 | 5 | DATA, driver 1 |
 | GPIO19 | 1 | CLK_1, driver 2 |
 | GPIO18 | 2 | DATA_1, driver 2 |
@@ -67,7 +67,7 @@ Step-by-step build notes are in `docs/wiring.md`.
 | Path | What |
 | --- | --- |
 | `docs/wiring.md` | Board prep, socket wiring, power, case fit |
-| `docs/hardware.md` | What is on the board, pinouts, variants, dead LEDs |
+| `docs/hardware.md` | What is on the board, pinouts and variants |
 | `docs/aip33628-protocol.md` | Frame format, latching, current levels |
 | `docs/display-map.md` | COM and SEG to segment, scan, brightness, color |
 | `docs/led-layout.md` | Physical coordinates for all 33 LED positions |
@@ -88,7 +88,9 @@ Assistant:
   flash effect.
 - Switches for 12h/24h time and colon blink, the two front panel buttons as
   plain inputs, and actions to push a number/characters or the seconds onto the display
-  for a few seconds.
+  for a few seconds. A unit of C or F lights the degree mark with the number.
+- A lamp test button that lights every populated LED white for three seconds,
+  then returns to the time with the previous settings.
 
 `firmware/esp32/panel-test/` is a bare-metal PlatformIO project that drives
 the same panel with nothing but the Arduino core. It is the better starting
