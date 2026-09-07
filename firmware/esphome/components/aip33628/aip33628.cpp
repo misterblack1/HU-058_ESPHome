@@ -153,6 +153,9 @@ static uint8_t current_for(float brightness) {
   return best;
 }
 
+// Half brightness keeps the all-white hardware check brief and predictable.
+static const float LAMP_BRIGHTNESS = 0.5f;
+
 // Color component to a duty level. Duty is linear light, so the component
 // has to be linearized before it is rounded, or every pastel rounds up to a
 // saturated color. Pink is the clearest case, and rounds all the way to
@@ -349,6 +352,16 @@ void Aip33628Panel::set_light(bool on, float r, float g, float b, float brightne
 // that changes a color goes through here, so there is one place that decides
 // what a block ends up at and one place that marks the panel dirty.
 void Aip33628Panel::apply_colors_() {
+  // The lamp test outranks every color tier, including a running effect.
+  if (mode_ == Mode::LAMP) {
+    for (auto &blk : level_)
+      for (auto &seg : blk)
+        for (uint8_t &ch : seg)
+          ch = COLOR_LEVELS - 1;
+    dirty_ = true;
+    return;
+  }
+
   for (int blk = 0; blk < 4; blk++) {
     for (int seg = 0; seg < 9; seg++) {
       const float *c = pos_set_[blk][seg]  ? pos_rgb_[blk][seg]
@@ -489,21 +502,32 @@ void Aip33628Panel::show_number(int value, const std::string &unit, int ms) {
   dirty_ = true;
 }
 
+// Every populated position, white, at a fixed brightness, for a few seconds.
+// This is a hardware check, so user color and brightness settings do not
+// change the result.
+void Aip33628Panel::lamp_test(int ms) {
+  mode_ = Mode::LAMP;
+  mode_until_ = millis() + mode_lifetime(ms);
+  lamp_current_ = current_for(LAMP_BRIGHTNESS);
+  apply_colors_();
+}
+
 // Right aligned, no colon. A unit takes the rightmost position and leaves
 // three for the number, so 78F and -5C both fit. Without one the number gets
 // all four. Out of range values are clamped rather than wrapped, because a
 // wrapped temperature is a wrong reading and a clamped one is obviously
 // pinned against the end.
 //
-// The widest values reach the hour tens position, which on this board is
-// missing its E segment, so 0, 2, 6 and 8 render broken there. With a unit
-// that only happens at three digits or a signed two, and never for a
-// temperature in F.
+// The widest values reach the hour tens position. With a unit that only
+// happens at three digits or a signed two, and never for a temperature in F.
 void Aip33628Panel::draw_number_(int value, char unit) {
   int pos = 3;
   if (unit != '\0' && glyph(unit) != 0) {
     write_digit_(3, unit);
     pos = 2;
+    // C and F are temperatures, so light the degree mark ahead of the unit.
+    if (unit == 'C' || unit == 'c' || unit == 'F')
+      write_pos_(3, SEG_ANNUN, true);
   }
 
   bool neg = value < 0;
@@ -686,8 +710,11 @@ void Aip33628Panel::loop() {
   // A temporary mode expires here rather than anywhere else, so there is one
   // place that can put the panel back to being a clock.
   if (mode_ != Mode::TIME && (int32_t) (now_ms - mode_until_) >= 0) {
+    bool was_lamp = mode_ == Mode::LAMP;
     mode_ = Mode::TIME;
     dirty_ = true;
+    if (was_lamp)
+      apply_colors_();
   }
 
   ESPTime now{};
@@ -720,6 +747,16 @@ void Aip33628Panel::loop() {
 
   for (auto &blk : on_) {
     for (bool &v : blk) v = false;
+  }
+
+  // A hardware check also works while the normal display light is off.
+  if (mode_ == Mode::LAMP) {
+    for (int blk = 0; blk < 4; blk++) {
+      for (int seg = 0; seg < 9; seg++)
+        on_[blk][seg] = GEOM[blk][seg].id != 0;
+    }
+    render_();
+    return;
   }
 
   if (!enabled_) {
@@ -760,9 +797,7 @@ void Aip33628Panel::loop() {
     if (hour == 0) hour = 12;
   }
 
-  // Leading zero stays suppressed in 24 hour mode as well. On this board the
-  // hour tens digit is missing its E segment, so a 0 there would render
-  // broken. See docs/hardware.md.
+  // Leading zero stays suppressed in 24 hour mode as well.
   if (hour >= 10) {
     write_digit_(0, (char) ('0' + hour / 10));
   }
@@ -822,7 +857,10 @@ void Aip33628Panel::render_() {
   // it depend on the lit sink count changes the brightness of the whole panel
   // every time the colon blinks. The stock firmware held IS fixed across
   // colon on and colon off, and ran 0xF with a white digit lit.
-  uint8_t is = requested_current_ < max_current_ ? requested_current_ : max_current_;
+  // The lamp test brings its own current, while max_current_ remains the
+  // thermal ceiling for every mode.
+  uint8_t want = mode_ == Mode::LAMP ? lamp_current_ : requested_current_;
+  uint8_t is = want < max_current_ ? want : max_current_;
 
   ScanBuf &b = buf_[front_ ^ 1];
   b.n = 0;

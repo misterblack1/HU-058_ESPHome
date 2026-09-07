@@ -67,7 +67,7 @@ enum class Spread : uint8_t { PANEL = 0, DIGIT = 1, LED = 2 };
 
 // What the panel is showing. Everything except TIME is temporary and expires
 // on its own, so no caller can leave the clock stuck not being a clock.
-enum class Mode : uint8_t { TIME, SECONDS, NUMBER };
+enum class Mode : uint8_t { TIME, SECONDS, NUMBER, LAMP };
 
 // One step of the scan schedule: latch this pattern on both drivers, then
 // hold it for this long. Adjacent sub-frames with identical data collapse
@@ -125,10 +125,13 @@ class Aip33628Panel : public Component {
   // Called by the light platform. Color components and brightness are 0 to 1.
   void set_light(bool on, float r, float g, float b, float brightness);
 
-  // Temporary displays, driven from the api actions in clock.yaml. Both take
-  // a lifetime in milliseconds and fall back to the time when it runs out.
+  // Temporary displays, driven from the api actions in clock.yaml. Each takes
+  // a lifetime in milliseconds and falls back to the time when it runs out.
   void show_seconds(int ms);
   void show_number(int value, const std::string &unit, int ms);
+  // Every populated position, white, at a fixed brightness. Ignores the
+  // color tiers, any running effect, and the light being off.
+  void lamp_test(int ms);
 
   // Per digit color. Blocks are 0 to 3, left to right, and each carries its
   // own annunciator: block 0 the AM mark, block 1 the colon, block 2 the date
@@ -230,6 +233,7 @@ class Aip33628Panel : public Component {
 
   Mode mode_{Mode::TIME};
   uint32_t mode_until_{0};
+  uint8_t lamp_current_{0};
   int number_{0};
   char unit_{'\0'};
 
