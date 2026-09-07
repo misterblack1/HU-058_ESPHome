@@ -25,7 +25,7 @@ Full build notes are in `../../../docs/wiring.md`.
 
 | ESP32 | Socket pin | Net | Use |
 | --- | --- | --- | --- |
-| GPIO22 | 14 | CLK | Driver 1 clock |
+| GPIO22 | 14 on HU-058D; 16 on HU-058 / HU-058SE | CLK | Driver 1 clock |
 | GPIO21 | 5 | DATA | Driver 1 data |
 | GPIO19 | 1 | CLK_1 | Driver 2 clock |
 | GPIO18 | 2 | DATA_1 | Driver 2 data |
