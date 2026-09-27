@@ -94,6 +94,18 @@ Home Assistant pushes its own timezone on every time sync and that path wins,
 but only while the `homeassistant` time platform has no timezone of its own.
 Do not add one there.
 
+To give the display a separate timezone, use the **Timezone** dropdown under
+Configuration on the Home Assistant device page. It applies immediately and
+restores across reboots. Choose **Home Assistant** to follow the server again.
+See `../../docs/home-assistant.md#timezone` for the available choices and how to
+customize the list.
+
+If a region changes its timezone or daylight-saving rules, update the build
+environment's `tzdata` package and rebuild and upload the firmware. Normal
+seasonal DST transitions need no update. See
+[Updating timezone rules](../../docs/home-assistant.md#updating-timezone-rules)
+for local and dashboard build instructions.
+
 ## Build and flash
 
 ```

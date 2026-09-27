@@ -97,7 +97,7 @@ the same panel with nothing but the Arduino core. It is the better starting
 point for a port, and its serial commands are the fastest way to find out
 which LED positions a given board actually has fitted.
 
-The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The timezone comes from Home Assitant. 
+The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The display follows Home Assistant's timezone by default; the Timezone dropdown on the device page lets you select a separate timezone without reflashing.
 
 ## Warnings
 
