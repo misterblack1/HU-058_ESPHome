@@ -722,6 +722,14 @@ void Aip33628Panel::loop() {
   if (time_ != nullptr) {
     now = time_->now();
     valid = now.is_valid();
+#ifdef USE_TIME_TIMEZONE
+    if (valid && display_timezone_ != nullptr) {
+      struct tm local_tm{};
+      valid = time::epoch_to_local_tm(now.timestamp, *display_timezone_, &local_tm);
+      if (valid)
+        now = ESPTime::from_c_tm(&local_tm, now.timestamp);
+    }
+#endif
   }
 
   // Whatever is on the panel, reduced to one number, so an unchanged display

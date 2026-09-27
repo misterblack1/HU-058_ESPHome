@@ -115,6 +115,7 @@ gradients included.
 | `light.wifi_clock_display` | Light | RGB, on/off, brightness, color |
 | `switch.wifi_clock_12_hour_time` | Switch | On for 12h, off for 24h |
 | `switch.wifi_clock_blink_colon` | Switch | Off means steady, not dark |
+| `select.wifi_clock_timezone` | Select | Home Assistant, or a separate display timezone |
 | `select.wifi_clock_effect` | Select | None, Color Cycle, Flash |
 | `select.wifi_clock_effect_spread` | Select | Whole Panel, Per Digit, Per LED |
 | `number.wifi_clock_effect_speed` | Number | 0.2 to 600 s, step 0.2 |
@@ -138,6 +139,42 @@ Effect settings restore across a reboot, and the effect resumes.
 
 The color tiers do not. Digit, position and gradient colors are runtime state,
 and a reboot hands the panel back to the Display light.
+
+## Timezone
+
+After installing this firmware, open Settings > Devices & services > ESPHome >
+WiFi Clock in Home Assistant. Under Configuration, choose **Timezone**.
+The display updates immediately; changing this setting needs no firmware upload.
+The choice is saved across reboots (allow the default one-minute preferences
+flush before disconnecting power).
+
+**Home Assistant** is the default and follows Home Assistant's timezone. Before
+Home Assistant connects, it uses the fallback timezone in `secrets.yaml`.
+Choosing a region such as **America/Chicago** gives the display its own timezone,
+including automatic daylight-saving changes. Both Home Assistant and SNTP still
+supply the current time; subsequent syncs do not override the display choice.
+Choose **Home Assistant** again to return to following the server.
+
+The dropdown includes UTC and 25 regional choices. To customize the list, add
+`timezones` to the `aip33628` select in `clock.yaml`, then install once:
+
+```yaml
+select:
+  - platform: aip33628
+    name: Timezone
+    id: display_timezone
+    aip33628_id: panel
+    timezones:
+      - Etc/UTC
+      - America/Chicago
+      - Europe/London
+      - Asia/Kolkata
+```
+
+This replaces the regional choices; **Home Assistant** is always included.
+Reordering the list preserves the saved selection. Removing the selected zone
+returns to **Home Assistant**. Timezone rules are bundled at build time, so a
+future legal change to daylight-saving rules requires a new firmware build.
 
 ## Angles
 
@@ -321,6 +358,6 @@ cannot park the panel on temporary content.
 There is no RTC. A cold boot with no network shows four dashes until the time
 arrives.
 
-The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The timezone comes from Home Assitant. 
+The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The display follows Home Assistant's timezone unless a separate Timezone is selected.
 
 The upper colon dot drops while the network is down. It is not known how much time will drift while NTP servers can't be reached.
