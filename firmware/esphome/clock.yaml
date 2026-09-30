@@ -241,6 +241,23 @@ binary_sensor:
       - delayed_on: 20ms
       - delayed_off: 20ms
 
+# Heartbeat on the devkit's blue LED, two seconds on and two off, so a glance
+# at the back of the case says the firmware is running. GPIO2 is unused by the
+# panel and the buttons. Nothing is exposed to Home Assistant; the colon's
+# upper dot already reports the network.
+output:
+  - platform: gpio
+    id: heartbeat_led
+    pin: GPIO2
+
+# A bare gpio output has no toggle action, hence the delay.
+interval:
+  - interval: 4s
+    then:
+      - output.turn_on: heartbeat_led
+      - delay: 2s
+      - output.turn_off: heartbeat_led
+
 switch:
   - platform: template
     id: twelve_hour_mode
