@@ -321,6 +321,6 @@ cannot park the panel on temporary content.
 There is no RTC. A cold boot with no network shows four dashes until the time
 arrives.
 
-The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The timezone comes from Home Assitant. 
+The firmware polls from the ESPHome NTP default servers every 15 minutes: 0.pool.ntp.org, 1.pool.ntp.org, 2.pool.ntp.org. The timezone comes from Home Assistant, see the README under Setup.
 
 The upper colon dot drops while the network is down. It is not known how much time will drift while NTP servers can't be reached.
