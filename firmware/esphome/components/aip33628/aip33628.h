@@ -196,7 +196,9 @@ class Aip33628Panel : public Component {
   // [block][segment][channel], 0 to COLOR_LEVELS - 1, index by Channel.
   uint8_t level_[4][9][3]{};
   uint8_t requested_current_{15};
-
+// Master PWM duty, 1..15, used only below the AiP33628's minimum
+// hardware current. Above that floor it remains at full duty.
+uint8_t master_duty_{COLOR_LEVELS - 1};
   // Color before it is quantized, in three tiers. A position with pos_set_
   // wins, then a block with digit_set_, then the master light's base_rgb_.
   float base_rgb_[3]{1.0f, 1.0f, 1.0f};
