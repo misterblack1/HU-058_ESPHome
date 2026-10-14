@@ -263,6 +263,18 @@ switch:
     turn_off_action:
       - lambda: id(panel)->set_blink_colon(false);
 
+  # On shows :SS with no timeout. A temporary display still takes over and
+  # hands back to seconds when it ends.
+  - platform: template
+    id: seconds_mode
+    name: Seconds Mode
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(panel)->set_seconds_mode(true);
+    turn_off_action:
+      - lambda: id(panel)->set_seconds_mode(false);
+
 button:
   # Three seconds of every populated LED lit white at half brightness, then
   # back to the time with the settings it had before.

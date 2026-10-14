@@ -115,6 +115,7 @@ gradients included.
 | `light.wifi_clock_display` | Light | RGB, on/off, brightness, color |
 | `switch.wifi_clock_12_hour_time` | Switch | On for 12h, off for 24h |
 | `switch.wifi_clock_blink_colon` | Switch | Off means steady, not dark |
+| `switch.wifi_clock_seconds_mode` | Switch | On shows `:SS` until turned off |
 | `select.wifi_clock_effect` | Select | None, Color Cycle, Flash |
 | `select.wifi_clock_effect_spread` | Select | Whole Panel, Per Digit, Per LED |
 | `number.wifi_clock_effect_speed` | Number | 0.2 to 600 s, step 0.2 |
@@ -317,6 +318,9 @@ Top button cycles through the effects:
 Temporary displays expire on their own. `show_seconds`, `show_number` and
 `lamp_test` carry a deadline capped at ten minutes, so a failed automation
 cannot park the panel on temporary content.
+
+To show seconds with no timeout, turn on the Seconds Mode switch. It stays on
+until turned off, and a temporary display that ends goes back to `:SS`.
 
 There is no RTC. A cold boot with no network shows four dashes until the time
 arrives.

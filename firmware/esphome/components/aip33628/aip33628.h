@@ -98,7 +98,7 @@ class Aip33628Panel : public Component {
   }
   void set_time(time::RealTimeClock *rtc) { time_ = rtc; }
   void set_max_current(uint8_t is) { max_current_ = is; }
-  // Both of these are live. Home Assistant drives them through template
+  // All of these are live. Home Assistant drives them through template
   // switches, so each has to force a redraw rather than wait for the next
   // rollover.
   void set_twelve_hour(bool v) {
@@ -107,6 +107,11 @@ class Aip33628Panel : public Component {
   }
   void set_blink_colon(bool v) {
     blink_colon_ = v;
+    dirty_ = true;
+  }
+  // Holds :SS with no deadline, under any temporary display.
+  void set_seconds_mode(bool v) {
+    seconds_mode_ = v;
     dirty_ = true;
   }
   // Offline drops the upper colon dot, so a glance at the panel says whether
@@ -188,6 +193,7 @@ class Aip33628Panel : public Component {
   uint8_t max_current_{15};
   bool twelve_hour_{true};
   bool blink_colon_{true};
+  bool seconds_mode_{false};
   bool online_{false};
 
   // Which positions are lit, before color is applied.

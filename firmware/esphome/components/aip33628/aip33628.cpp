@@ -723,6 +723,7 @@ void Aip33628Panel::loop() {
     now = time_->now();
     valid = now.is_valid();
   }
+  bool seconds = mode_ == Mode::SECONDS || (mode_ == Mode::TIME && seconds_mode_);
 
   // Whatever is on the panel, reduced to one number, so an unchanged display
   // costs nothing. Time uses hour and minute together rather than the minute
@@ -733,7 +734,7 @@ void Aip33628Panel::loop() {
   if (mode_ == Mode::NUMBER) {
     key = number_;
   } else if (valid) {
-    key = mode_ == Mode::SECONDS ? now.second : now.hour * 60 + now.minute;
+    key = seconds ? now.second : now.hour * 60 + now.minute;
   }
 
   // The colon blinks once a second, so the content changes more often than
@@ -778,7 +779,7 @@ void Aip33628Panel::loop() {
     return;
   }
 
-  if (mode_ == Mode::SECONDS) {
+  if (seconds) {
     // Seconds sit where the minutes normally do, behind a colon that stays
     // steady, so the panel reads as :SS rather than as a bare two digit
     // number that could be anything. The upper dot still follows the network.
