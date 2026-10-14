@@ -187,10 +187,12 @@ aip33628:
   clk2_pin: GPIO19   # MCU socket pin 1,  driver 2
   data2_pin: GPIO18  # MCU socket pin 2,  driver 2
   time_id: ha_time
-  # Power on defaults. The switches below own both after that, and they
+  # Power on defaults. The switches below own all three after that, and they
   # restore their last state, so these only matter for a first ever boot.
   twelve_hour: true
   blink_colon: true
+  # Show the hour tens digit as 0 below 10, so 9:30 reads 09:30.
+  leading_zero: false
   # Ceiling on IS[3:0], 0 to 15. Fixed, never varied by content. The stock
   # firmware ran 0xF and drew 404mA doing it. Drop this if the drivers
   # run hotter than you want. See docs/display-map.md.
@@ -262,6 +264,16 @@ switch:
       - lambda: id(panel)->set_blink_colon(true);
     turn_off_action:
       - lambda: id(panel)->set_blink_colon(false);
+
+  - platform: template
+    id: leading_zero_mode
+    name: Leading Zero
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - lambda: id(panel)->set_leading_zero(true);
+    turn_off_action:
+      - lambda: id(panel)->set_leading_zero(false);
 
 button:
   # Three seconds of every populated LED lit white at half brightness, then
