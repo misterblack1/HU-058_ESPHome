@@ -57,6 +57,14 @@ api:
         duration: int
       then:
         - lambda: id(panel)->show_number(value, unit, duration);
+    # Up to four characters, right aligned. Longer text is cut to its first
+    # four. A space is blank, and a character outside the font shows as _.
+    - action: show_text
+      variables:
+        message: string
+        duration: int
+      then:
+        - lambda: id(panel)->show_text(message, duration);
     # Every populated LED, white, for a few seconds, then back to the time.
     # It ignores color, effects, brightness and the light being off. Duration
     # is milliseconds, and 3000 is the button below.
