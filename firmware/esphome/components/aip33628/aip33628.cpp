@@ -250,7 +250,12 @@ void IRAM_ATTR Aip33628Panel::send_pair_(uint16_t ss1, uint16_t ss2, uint8_t cs,
   const uint32_t clks = clk_mask_ | clk2_mask_;
   const uint32_t dats = data_mask_ | data2_mask_;
 
-  GPIO.out_w1tc = clks | dats;
+  // Chip differentiation for the initial register reset
+  #if defined(CONFIG_IDF_TARGET_ESP32C3)
+    GPIO.out_w1tc.val = clks | dats;
+  #else
+    GPIO.out_w1tc = clks | dats;
+  #endif
 
   for (int i = 0; i < 30; i++) {
     uint32_t set = 0;
@@ -260,19 +265,34 @@ void IRAM_ATTR Aip33628Panel::send_pair_(uint16_t ss1, uint16_t ss2, uint8_t cs,
       set |= data2_mask_;
     f1 >>= 1;
     f2 >>= 1;
-    // Data settles while CLK is low, then one rising edge shifts both buses.
-    GPIO.out_w1tc = dats & ~set;
-    GPIO.out_w1ts = set;
-    GPIO.out_w1ts = clks;
-    if (i < 29)
-      GPIO.out_w1tc = clks;
+    // Data transmission loop
+    #if defined(CONFIG_IDF_TARGET_ESP32C3)
+      GPIO.out_w1tc.val = dats & ~set;
+      GPIO.out_w1ts.val = set;
+      GPIO.out_w1ts.val = clks;
+      if (i < 29)
+        GPIO.out_w1tc.val = clks;
+    #else
+      GPIO.out_w1tc = dats & ~set;
+      GPIO.out_w1ts = set;
+      GPIO.out_w1ts = clks;
+      if (i < 29)
+        GPIO.out_w1tc = clks;
+    #endif
   }
 
-  // CLK is still high after bit 29. A DATA rising edge here is the latch.
-  GPIO.out_w1tc = dats;
-  GPIO.out_w1ts = dats;
-  GPIO.out_w1tc = dats;
-  GPIO.out_w1tc = clks;
+  // Final latch sequence
+  #if defined(CONFIG_IDF_TARGET_ESP32C3)
+    GPIO.out_w1tc.val = dats;
+    GPIO.out_w1ts.val = dats;
+    GPIO.out_w1tc.val = dats;
+    GPIO.out_w1tc.val = clks;
+  #else
+    GPIO.out_w1tc = dats;
+    GPIO.out_w1ts = dats;
+    GPIO.out_w1tc = dats;
+    GPIO.out_w1tc = clks;
+  #endif
 }
 
 // Walk the schedule the renderer built. The timer runs at a fixed UNIT_US
