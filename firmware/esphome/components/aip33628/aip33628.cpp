@@ -136,21 +136,47 @@ static uint8_t glyph(char c) {
 // on the light itself. Applying it in both places would square it.
 static const float PANEL_GAMMA = 2.8f;
 
-// Slider position to a current step. A plain gamma curve assumes the output
-// can reach zero. This panel bottoms out at IS_MA[0], so a third of the
-// slider ends up clamped against that floor with nothing to show for it.
-// Interpolating perceived output between the floor and full instead puts all
-// sixteen steps across the whole slider.
-static uint8_t current_for(float brightness) {
-  const float p_min = powf((float) IS_MA[0] / (float) IS_MA[15], 1.0f / PANEL_GAMMA);
-  float p = p_min + clamp(brightness, 0.0f, 1.0f) * (1.0f - p_min);
+// Map slider position to a current step and, below IS_MA[0], a master PWM
+// duty. Interpolating perceived output from one PWM unit at IS=0 to full
+// output keeps the whole slider useful while extending the range below the
+// driver's minimum current.
+struct BrightnessDrive {
+  uint8_t current;
+  uint8_t duty;
+};
+
+static BrightnessDrive drive_for(float brightness) {
+  const float duty_max = COLOR_LEVELS - 1;
+  const float effective_min = (float) IS_MA[0] / duty_max;
+
+  // Extend the perceived-brightness curve down to one PWM unit at IS=0.
+  const float p_min =
+      powf(effective_min / (float) IS_MA[15], 1.0f / PANEL_GAMMA);
+
+  float p = p_min +
+            clamp(brightness, 0.0f, 1.0f) * (1.0f - p_min);
+
   float want = powf(p, PANEL_GAMMA) * (float) IS_MA[15];
+
+  // Below the AiP33628's minimum current, stay at IS=0 and dim by reducing
+  // scan duty instead.
+  if (want < IS_MA[0]) {
+    int duty = (int) lroundf(want / (float) IS_MA[0] * duty_max);
+    if (duty < 1)
+      duty = 1;
+    if (duty > COLOR_LEVELS - 1)
+      duty = COLOR_LEVELS - 1;
+    return {0, (uint8_t) duty};
+  }
+
   uint8_t best = 0;
   for (uint8_t i = 1; i < 16; i++) {
-    if (fabsf((float) IS_MA[i] - want) < fabsf((float) IS_MA[best] - want))
+    if (fabsf((float) IS_MA[i] - want) <
+        fabsf((float) IS_MA[best] - want))
       best = i;
   }
-  return best;
+
+  return {best, COLOR_LEVELS - 1};
 }
 
 // Half brightness keeps the all-white hardware check brief and predictable.
@@ -344,7 +370,9 @@ void Aip33628Panel::set_light(bool on, float r, float g, float b, float brightne
   base_rgb_[0] = r;
   base_rgb_[1] = g;
   base_rgb_[2] = b;
-  requested_current_ = current_for(brightness);
+  BrightnessDrive drive = drive_for(brightness);
+  requested_current_ = drive.current;
+  master_duty_ = drive.duty;
   apply_colors_();
 }
 
@@ -367,9 +395,16 @@ void Aip33628Panel::apply_colors_() {
       const float *c = pos_set_[blk][seg]  ? pos_rgb_[blk][seg]
                        : digit_set_[blk]   ? digit_rgb_[blk]
                                            : base_rgb_;
-      level_[blk][seg][CH_RED] = duty_level(c[0] * envelope_);
-      level_[blk][seg][CH_GREEN] = duty_level(c[1] * envelope_);
-      level_[blk][seg][CH_BLUE] = duty_level(c[2] * envelope_);
+      uint8_t red = duty_level(c[0] * envelope_);
+      uint8_t green = duty_level(c[1] * envelope_);
+      uint8_t blue = duty_level(c[2] * envelope_);
+
+      level_[blk][seg][CH_RED] =
+          (red * master_duty_ + 7) / (COLOR_LEVELS - 1);
+      level_[blk][seg][CH_GREEN] =
+          (green * master_duty_ + 7) / (COLOR_LEVELS - 1);
+      level_[blk][seg][CH_BLUE] =
+          (blue * master_duty_ + 7) / (COLOR_LEVELS - 1);
     }
   }
   dirty_ = true;
@@ -508,7 +543,7 @@ void Aip33628Panel::show_number(int value, const std::string &unit, int ms) {
 void Aip33628Panel::lamp_test(int ms) {
   mode_ = Mode::LAMP;
   mode_until_ = millis() + mode_lifetime(ms);
-  lamp_current_ = current_for(LAMP_BRIGHTNESS);
+  lamp_current_ = drive_for(LAMP_BRIGHTNESS).current;
   apply_colors_();
 }
 
