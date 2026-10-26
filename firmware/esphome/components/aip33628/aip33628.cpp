@@ -1,4 +1,5 @@
 #include "aip33628.h"
+#include "glyph.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
@@ -91,44 +92,6 @@ const PosGeom GEOM[4][9] = {
         {0, 0, 0},  // unwired
     },
 };
-
-// Seven segment font, bit 0 = A through bit 6 = G. The letters are the subset
-// that reads unambiguously on seven segments, so a caller can put a unit or a
-// short label in the rightmost position.
-static uint8_t glyph(char c) {
-  switch (c) {
-    case 'A': return 0b1110111;
-    case 'b': return 0b1111100;
-    case 'C': return 0b0111001;
-    case 'c': return 0b1011000;
-    case 'd': return 0b1011110;
-    case 'E': return 0b1111001;
-    case 'F': return 0b1110001;
-    case 'H': return 0b1110110;
-    case 'h': return 0b1110100;
-    case 'L': return 0b0111000;
-    case 'n': return 0b1010100;
-    case 'o': return 0b1011100;
-    case 'P': return 0b1110011;
-    case 'r': return 0b1010000;
-    case 't': return 0b1111000;
-    case 'U': return 0b0111110;
-    case 'u': return 0b0011100;
-    case 'y': return 0b1101110;
-    case '0': return 0b0111111;
-    case '1': return 0b0000110;
-    case '2': return 0b1011011;
-    case '3': return 0b1001111;
-    case '4': return 0b1100110;
-    case '5': return 0b1101101;
-    case '6': return 0b1111101;
-    case '7': return 0b0000111;
-    case '8': return 0b1111111;
-    case '9': return 0b1101111;
-    case '-': return 0b1000000;
-    default:  return 0;
-  }
-}
 
 // Home Assistant sends gamma encoded values and the panel is linear in
 // current and in duty, so both have to be linearized here. 2.8 is the same
@@ -493,6 +456,13 @@ void Aip33628Panel::show_seconds(int ms) {
   dirty_ = true;
 }
 
+void Aip33628Panel::show_text(const std::string &text, int ms) {
+  layout_text(text, text_);
+  mode_ = Mode::TEXT;
+  mode_until_ = millis() + mode_lifetime(ms);
+  dirty_ = true;
+}
+
 void Aip33628Panel::show_number(int value, const std::string &unit, int ms) {
   number_ = value;
   // First character only. An empty unit gives the number the whole panel.
@@ -732,6 +702,8 @@ void Aip33628Panel::loop() {
   int key = -1;
   if (mode_ == Mode::NUMBER) {
     key = number_;
+  } else if (mode_ == Mode::TEXT) {
+    key = 0;  // show_text sets dirty_, and nothing else changes the text
   } else if (valid) {
     key = mode_ == Mode::SECONDS ? now.second : now.hour * 60 + now.minute;
   }
@@ -767,6 +739,14 @@ void Aip33628Panel::loop() {
   // A pushed number does not need the clock to be set, so it comes first.
   if (mode_ == Mode::NUMBER) {
     draw_number_(number_, unit_);
+    render_();
+    return;
+  }
+
+  if (mode_ == Mode::TEXT) {
+    for (int blk = 0; blk < 4; blk++)
+      for (int s = 0; s < 7; s++)
+        on_[blk][s] = (text_[blk] >> s) & 1;
     render_();
     return;
   }

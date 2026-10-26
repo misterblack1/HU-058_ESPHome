@@ -15,6 +15,7 @@ In YAML they are called with `action:` and `data:`.
 | --- | --- |
 | `show_seconds` | `duration` int, ms |
 | `show_number` | `value` int, `unit` string, `duration` int ms |
+| `show_text` | `message` string, `duration` int ms |
 | `lamp_test` | `duration` int, ms |
 | `set_digit_color` | `digit` int, `red` `green` `blue` int 0-255 |
 | `set_position_color` | `position` int 1-33, `red` `green` `blue` int 0-255 |
@@ -38,14 +39,30 @@ positions.
 
 There is no decimal point on the panel, so round before sending.
 
-Only these letters render unambiguously on seven segments, and anything else
-is ignored: `A b C c d E F H h L n o P r t U u y`.
+The unit can be any letter in the `show_text` font, and anything else is
+ignored. Do not use `S`, `O` or `I` as a unit: they share the shapes of `5`, `0`
+and `1`, so after a number they read as a digit, and `72S` reads as `725`.
 
 A unit of `C`, `c` or `F` also lights the degree mark in the gap ahead of the
 last digit. No other unit gets it.
 
 Out of range values clamp rather than wrap, because a wrapped temperature is
 a wrong reading and a clamped one is visibly pinned.
+
+### show_text
+
+Up to four characters, right aligned, so `Hi` lands in the two rightmost
+positions. Text longer than four characters is cut to its first four.
+
+The font is the same as for `show_number` units, plus the digits and `-`:
+`0-9 - A b C c d E F G H h I i L n O o P r S t U u y`. A letter that the font
+has in one case only shows in that case, so `read`, `READ` and `Read` all show
+as `rEAd`. A letter with both cases, such as `C` and `c`, keeps its own shape. A
+space is blank, and any other character shows as `_`, so `EXIt` shows as `E_1t`.
+
+These letters read unambiguously in text only. `S`, `O` and `I` share the
+shapes of `5`, `0` and `1`, and read as letters because the characters next to
+them are letters.
 
 ### lamp_test
 
@@ -231,6 +248,15 @@ Show a temperature for ten seconds:
     duration: 10000
 ```
 
+Show a short word for five seconds:
+
+```yaml
+- action: esphome.wifi_clock_show_text
+  data:
+    message: "door"
+    duration: 5000
+```
+
 Flash red three times at the front door, then go back to normal:
 
 ```yaml
@@ -314,8 +340,8 @@ Top button cycles through the effects:
 
 ## Things worth knowing
 
-Temporary displays expire on their own. `show_seconds`, `show_number` and
-`lamp_test` carry a deadline capped at ten minutes, so a failed automation
+Temporary displays expire on their own. `show_seconds`, `show_number`,
+`show_text` and `lamp_test` carry a deadline capped at ten minutes, so a failed automation
 cannot park the panel on temporary content.
 
 There is no RTC. A cold boot with no network shows four dashes until the time
