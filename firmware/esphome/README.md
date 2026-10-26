@@ -87,12 +87,44 @@ On Windows that is `copy` instead of `cp`.
 Fill in the WiFi credentials, timezone and API key the way the comments in
 that file describe.
 
-The timezone in `secrets.yaml` is a fallback for a boot with no Home Assistant.
-Change it to yours.
+### Where the timezone comes from
 
-Home Assistant pushes its own timezone on every time sync and that path wins,
-but only while the `homeassistant` time platform has no timezone of its own.
-Do not add one there.
+The clock has two time sources, both in the `time:` block of `clock.yaml`:
+
+```yaml
+time:
+  - platform: homeassistant   # primary: time and timezone from Home Assistant
+    id: ha_time
+  - platform: sntp            # fallback: NTP time, timezone from secrets.yaml
+    id: sntp_time
+    timezone: !secret timezone
+```
+
+Once the clock is adopted in Home Assistant, **Home Assistant's own timezone
+wins**, DST rules included. It is pushed to the clock on every time sync, so
+changing the timezone in Home Assistant changes it on the clock. Nothing in
+this repo needs editing for that.
+
+The `timezone` entry in `secrets.yaml` only feeds the `sntp` fallback, and
+the fallback is a startup value, not a standby. ESPHome keeps one global
+timezone. The `sntp` block sets it from `secrets.yaml` at boot, and the first
+Home Assistant time sync overwrites it. Nothing ever puts the `secrets.yaml`
+value back, so if Home Assistant later drops off the network the clock keeps
+the last timezone it was pushed. The secret is therefore in charge:
+
+- from every power-on until Home Assistant first answers, adopted or not
+- for as long as the clock is never adopted
+- for as long as Home Assistant is older than 2026.3.0, which sends a
+  timezone format current ESPHome no longer decodes
+
+The example ships `Etc/UTC`, so a clock that reads several hours off is on
+this startup value and has not heard from Home Assistant since it booted.
+Set it to your zone anyway so the first seconds of every boot look right.
+
+**Do not add a `timezone:` line under `platform: homeassistant`.** That key is
+optional, and leaving it out is what enables the push. Adding one compiles the
+push out and pins the clock to whatever you wrote, no matter what Home
+Assistant says.
 
 ## Build and flash
 

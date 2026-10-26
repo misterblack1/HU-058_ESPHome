@@ -166,16 +166,24 @@ wifi:
 captive_portal:
 
 time:
-  # No timezone on this one, deliberately. Home Assistant pushes its own
-  # timezone to the device on every time sync, DST rules included, but only
-  # if this platform has no timezone of its own. Setting one here compiles
-  # that path out and pins the clock to whatever is written instead.
+  # Primary source. Home Assistant pushes its own timezone to the clock on
+  # every time sync, DST rules included, so the clock follows whatever
+  # Home Assistant is set to.
+  #
+  # There is deliberately no `timezone:` key on this platform. The key is
+  # optional, and leaving it out is what turns the push on. Adding one here
+  # compiles the push out and pins the clock to that value regardless of
+  # Home Assistant. If you want a different timezone, change it in Home
+  # Assistant, not here.
   - platform: homeassistant
     id: ha_time
-  # SNTP is the fallback for a boot with no Home Assistant. It has nowhere to
-  # learn a timezone from, so this one is spelled out. It is also what the
-  # display shows for the first few seconds of every boot, until Home
-  # Assistant answers. Change it if the clock moves.
+  # Fallback source. NTP carries no timezone, so this one is spelled out,
+  # and `timezone` in secrets.yaml is the only place it lives. ESPHome keeps
+  # a single global timezone: this block sets it at boot and the first Home
+  # Assistant sync overwrites it for good. So this value is what the clock
+  # shows from every power-on until Home Assistant first answers, and
+  # forever if it never does. A later Home Assistant disconnect does not
+  # bring it back; the pushed timezone stays while SNTP keeps the time.
   - platform: sntp
     id: sntp_time
     timezone: !secret timezone
