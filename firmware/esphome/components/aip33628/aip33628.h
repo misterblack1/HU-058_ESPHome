@@ -97,6 +97,12 @@ class Aip33628Panel : public Component {
     data2_ = data2;
   }
   void set_time(time::RealTimeClock *rtc) { time_ = rtc; }
+#ifdef USE_TIME_TIMEZONE
+  void set_display_timezone(const time::ParsedTimezone *tz) {
+    display_timezone_ = tz;
+    dirty_ = true;
+  }
+#endif
   void set_max_current(uint8_t is) { max_current_ = is; }
   // Both of these are live. Home Assistant drives them through template
   // switches, so each has to force a redraw rather than wait for the next
@@ -177,6 +183,9 @@ class Aip33628Panel : public Component {
   InternalGPIOPin *clk2_{nullptr};
   InternalGPIOPin *data2_{nullptr};
   time::RealTimeClock *time_{nullptr};
+#ifdef USE_TIME_TIMEZONE
+  const time::ParsedTimezone *display_timezone_{nullptr};
+#endif
 
   // Port bit masks for the four pins. A frame goes out as direct register
   // stores with both buses clocked together, which takes 6.4us against 28.0us

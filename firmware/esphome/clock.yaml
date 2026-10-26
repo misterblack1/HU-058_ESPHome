@@ -308,6 +308,11 @@ button:
 # Developer Tools > Actions. Setting either entity redraws immediately and the
 # panel falls back to the time ten seconds later on its own.
 select:
+  - platform: aip33628
+    name: Timezone
+    id: display_timezone
+    aip33628_id: panel
+
   # Effects run on the device, not in Home Assistant, so a fade stays smooth
   # and keeps going if the network drops. Every entity here is a normal one,
   # so an automation can drive them, or call the set_effect action to set the
