@@ -220,6 +220,7 @@ void Aip33628Panel::dump_config() {
                 IS_MA[max_current_] / 10, IS_MA[max_current_] % 10);
   ESP_LOGCONFIG(TAG, "  Hour format: %s", twelve_hour_ ? "12 hour" : "24 hour");
   ESP_LOGCONFIG(TAG, "  Colon: %s", blink_colon_ ? "blinking" : "steady");
+  ESP_LOGCONFIG(TAG, "  Leading zero: %s", leading_zero_ ? "shown" : "hidden");
   ESP_LOGCONFIG(TAG, "  Network: %s", online_ ? "up" : "down");
   const char *fx = effect_ == Effect::CYCLE ? "color cycle"
                    : effect_ == Effect::FLASH ? "flash" : "none";
@@ -797,8 +798,8 @@ void Aip33628Panel::loop() {
     if (hour == 0) hour = 12;
   }
 
-  // Leading zero stays suppressed in 24 hour mode as well.
-  if (hour >= 10) {
+  // The leading zero follows leading_zero_ alone, in 12 and 24 hour mode.
+  if (hour >= 10 || leading_zero_) {
     write_digit_(0, (char) ('0' + hour / 10));
   }
   write_digit_(1, (char) ('0' + hour % 10));

@@ -115,6 +115,7 @@ gradients included.
 | `light.wifi_clock_display` | Light | RGB, on/off, brightness, color |
 | `switch.wifi_clock_12_hour_time` | Switch | On for 12h, off for 24h |
 | `switch.wifi_clock_blink_colon` | Switch | Off means steady, not dark |
+| `switch.wifi_clock_leading_zero` | Switch | On shows 9:30 as 09:30, in 12h and 24h |
 | `select.wifi_clock_effect` | Select | None, Color Cycle, Flash |
 | `select.wifi_clock_effect_spread` | Select | Whole Panel, Per Digit, Per LED |
 | `number.wifi_clock_effect_speed` | Number | 0.2 to 600 s, step 0.2 |
