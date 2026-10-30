@@ -219,6 +219,7 @@ void Aip33628Panel::dump_config() {
   ESP_LOGCONFIG(TAG, "  Max current: IS 0x%X, %u.%umA per lit sink", max_current_,
                 IS_MA[max_current_] / 10, IS_MA[max_current_] % 10);
   ESP_LOGCONFIG(TAG, "  Hour format: %s", twelve_hour_ ? "12 hour" : "24 hour");
+  ESP_LOGCONFIG(TAG, "  AM indicator: %s", show_am_indicator_ ? "enabled" : "hidden");
   ESP_LOGCONFIG(TAG, "  Colon: %s", blink_colon_ ? "blinking" : "steady");
   ESP_LOGCONFIG(TAG, "  Network: %s", online_ ? "up" : "down");
   const char *fx = effect_ == Effect::CYCLE ? "color cycle"
@@ -811,7 +812,7 @@ void Aip33628Panel::loop() {
     if (online_) write_pos_(1, SEG_ANNUN, true);
     write_pos_(1, SEG_ANNUN2, true);
   }
-  if (twelve_hour_ && !pm) {
+  if (show_am_indicator_ && twelve_hour_ && !pm) {
     write_pos_(0, SEG_ANNUN, true);  // AM indicator, lit through the morning
   }
 

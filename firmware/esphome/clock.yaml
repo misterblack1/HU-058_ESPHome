@@ -187,9 +187,10 @@ aip33628:
   clk2_pin: GPIO19   # MCU socket pin 1,  driver 2
   data2_pin: GPIO18  # MCU socket pin 2,  driver 2
   time_id: ha_time
-  # Power on defaults. The switches below own both after that, and they
+  # Power on defaults. The switches below own these after that, and they
   # restore their last state, so these only matter for a first ever boot.
   twelve_hour: true
+  show_am_indicator: true
   blink_colon: true
   # Ceiling on IS[3:0], 0 to 15. Fixed, never varied by content. The stock
   # firmware ran 0xF and drew 404mA doing it. Drop this if the drivers
@@ -251,6 +252,16 @@ switch:
       - lambda: id(panel)->set_twelve_hour(true);
     turn_off_action:
       - lambda: id(panel)->set_twelve_hour(false);
+
+  - platform: template
+    id: am_indicator
+    name: Show AM indicator
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    turn_on_action:
+      - lambda: id(panel)->set_show_am_indicator(true);
+    turn_off_action:
+      - lambda: id(panel)->set_show_am_indicator(false);
 
   # Off means a steady colon, not a dark one.
   - platform: template

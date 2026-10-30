@@ -159,6 +159,7 @@ aip33628:
   data2_pin: GPIO18
   time_id: ha_time
   twelve_hour: true
+  show_am_indicator: true
   blink_colon: true
   max_current: 15
 ```
@@ -170,6 +171,7 @@ aip33628:
 | `time_id` | none | A time source. Without one the panel shows dashes. |
 | `max_current` | 15 | Ceiling on `IS[3:0]`, 0 to 15 |
 | `twelve_hour` | true | 12h or 24h. Power on default, the switch owns it |
+| `show_am_indicator` | true | Allow the AM mark in 12h mode; the Show AM indicator switch owns it after boot |
 | `blink_colon` | true | Power on default, the switch owns it after that |
 
 The light platform takes an `aip33628_id` and is otherwise a normal RGB light.

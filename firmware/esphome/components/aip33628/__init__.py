@@ -17,6 +17,7 @@ CONF_DATA2_PIN = "data2_pin"
 CONF_TIME_ID = "time_id"
 CONF_MAX_CURRENT = "max_current"
 CONF_TWELVE_HOUR = "twelve_hour"
+CONF_SHOW_AM_INDICATOR = "show_am_indicator"
 CONF_BLINK_COLON = "blink_colon"
 
 
@@ -55,9 +56,10 @@ CONFIG_SCHEMA = cv.Schema(
         # A fixed ceiling on IS[3:0]. It must not depend on what is on screen,
         # or the whole panel changes brightness whenever the colon blinks.
         cv.Optional(CONF_MAX_CURRENT, default=15): cv.int_range(min=0, max=15),
-        # Power on defaults only. Home Assistant owns both at run time
+        # Power on defaults only. Home Assistant owns these at run time
         # through the template switches in clock.yaml.
         cv.Optional(CONF_TWELVE_HOUR, default=True): cv.boolean,
+        cv.Optional(CONF_SHOW_AM_INDICATOR, default=True): cv.boolean,
         cv.Optional(CONF_BLINK_COLON, default=True): cv.boolean,
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -79,4 +81,5 @@ async def to_code(config):
 
     cg.add(var.set_max_current(config[CONF_MAX_CURRENT]))
     cg.add(var.set_twelve_hour(config[CONF_TWELVE_HOUR]))
+    cg.add(var.set_show_am_indicator(config[CONF_SHOW_AM_INDICATOR]))
     cg.add(var.set_blink_colon(config[CONF_BLINK_COLON]))

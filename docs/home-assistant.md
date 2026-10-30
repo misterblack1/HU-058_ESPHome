@@ -114,6 +114,7 @@ gradients included.
 | --- | --- | --- |
 | `light.wifi_clock_display` | Light | RGB, on/off, brightness, color |
 | `switch.wifi_clock_12_hour_time` | Switch | On for 12h, off for 24h |
+| `switch.wifi_clock_show_am_indicator` | Switch | On by default; off hides the AM mark without changing 12h mode |
 | `switch.wifi_clock_blink_colon` | Switch | Off means steady, not dark |
 | `select.wifi_clock_effect` | Select | None, Color Cycle, Flash |
 | `select.wifi_clock_effect_spread` | Select | Whole Panel, Per Digit, Per LED |
@@ -133,6 +134,10 @@ gradients included.
 
 The step on the number entities only affects the arrows in the UI. An
 automation, or `set_effect`, can pass any value in range.
+
+The Show AM indicator switch restores across a reboot independently of the
+12 Hour Time switch. Turning it off hides only the AM mark during the time
+display. Lamp Test still lights every LED, including the AM mark.
 
 Effect settings restore across a reboot, and the effect resumes.
 
